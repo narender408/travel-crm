@@ -19,10 +19,18 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
 
+//    @Override
+//    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+//        User user = userRepository.findByUserName(username)
+//                .orElseThrow(() -> new CustomException("User not found","404"));
+//
+//        return new CustomUserDetails(user);
+//    }
+    
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUserName(username)
-                .orElseThrow(() -> new CustomException("User not found","404"));
+    public UserDetails loadUserByUsername(String phoneNumber) throws UsernameNotFoundException {
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with phone number: " + phoneNumber));
 
         return new CustomUserDetails(user);
     }

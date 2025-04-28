@@ -88,7 +88,7 @@ private CountryService countryservice;
 	  
   }
   
-  @PutMapping("/{id")
+  @PutMapping("/{id}")
   public ResponseEntity<?> updateCountry(@PathVariable Long id,@RequestBody Country country)
   {
 	  try {

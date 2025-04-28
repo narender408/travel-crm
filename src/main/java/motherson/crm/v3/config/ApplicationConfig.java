@@ -80,6 +80,7 @@ public class ApplicationConfig {
                                 "/swagger-ui.html",
                                 "/Motherson/crm/v3/register",
                                 "/Motherson/crm/v3/login",
+                                "/Motherson/crm/v3/generate-otp",
                                 "/Motherson/crm/v3/signupsuperadmin")
                         .permitAll() // Public APIs
 //                        .requestMatchers("/Motherson/crm/v3/**").hasRole("Super_Admin")

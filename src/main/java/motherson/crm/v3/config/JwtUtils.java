@@ -30,9 +30,9 @@ public class JwtUtils {
      * @param username The subject (username) for whom the token is generated.
      * @return The generated JWT token.
      */
-    public String generateToken(String username) {
+    public String generateToken(String phoneNumber) {
         return Jwts.builder()
-                .setSubject(username) // Username as the token subject
+                .setSubject(phoneNumber) // Username as the token subject
                 .setIssuedAt(new Date()) // Current timestamp
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS)) // Expiration
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256) // Signing with HS256 algorithm

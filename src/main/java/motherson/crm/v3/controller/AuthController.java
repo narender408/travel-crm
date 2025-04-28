@@ -1,7 +1,9 @@
 package motherson.crm.v3.controller;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,9 +27,11 @@ import motherson.crm.v3.customexception.CustomException;
 import motherson.crm.v3.customexception.CustomMessageAuth;
 import motherson.crm.v3.customexception.Response;
 import motherson.crm.v3.dto.AuthRequest;
+import motherson.crm.v3.dto.AuthRequestotp;
 import motherson.crm.v3.dto.AuthResponse;
 import motherson.crm.v3.models.User;
 import motherson.crm.v3.repository.UserRepository;
+import motherson.crm.v3.services.SmsService;
 
 @RestController
 @RequestMapping("Motherson/crm/v3")
@@ -42,7 +46,9 @@ public class AuthController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-		
+    @Autowired
+    private SmsService smsService;
+
     
    
 		
@@ -90,33 +96,74 @@ public class AuthController {
     
 
 
-//    @PostMapping("/login")
-//    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
-//        Authentication auth = authManager.authenticate(
-//                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-//
-//        String token = jwtUtils.generateToken(request.getUsername());
-//        return ResponseEntity.ok(new AuthResponse(token));
-//    }
+ // Step 1: Generate OTP after phoneNumber + password validation
+    @PostMapping("/generate-otp")
+    public ResponseEntity<?> generateOtp(@RequestBody AuthRequestotp request) {
+        User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
+                .orElseThrow(() -> new CustomException("User not found", "404"));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new CustomException("Invalid password", "401");
+        }
+
+        // Generate 6-digit OTP
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        user.setOtp(otp);
+        user.setOtpRequestedTime(LocalDateTime.now());
+        user.setOtpVerified(false);
+        userRepository.save(user);
+
+        // ✅ Now SEND OTP via Twilio
+        smsService.sendOtp(user.getPhoneNumber(), otp);
+
+        return ResponseEntity.ok("OTP sent successfully to your phone number.");
+    }
+
     
     @PostMapping("/login")
-	//@Operation(security = @SecurityRequirement(name = ""))
-public ResponseEntity<?> login(@RequestBody AuthRequest request) {
-    User existingUser = null;
-	try {
-		existingUser = userRepository.findByUserName(request.getUsername())
-		        .orElseThrow(() -> new CustomException("User not found","404"));
-	} catch (CustomException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-    if (!passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
-    	 throw new CustomException("Invalid credentials","401");
+    public ResponseEntity<?> verifyOtp(@RequestBody AuthRequestotp request) {
+        User user = userRepository.findByPhoneNumber(request.getPhoneNumber())
+                .orElseThrow(() -> new CustomException("User not found", "404"));
+
+        if (!user.getOtp().equals(request.getOtp())) {
+            throw new CustomException("Invalid OTP", "400");
+        }
+
+        if (user.getOtpRequestedTime().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new CustomException("OTP expired", "400");
+        }
+
+        // OTP verified successfully
+        user.setOtpVerified(true);
+        user.setOtp(null); // Clear OTP
+        userRepository.save(user);
+
+        // Generate JWT token
+        String token = jwtUtils.generateToken(user.getPhoneNumber());
+
+        return ResponseEntity.ok(token);
     }
-    String token = jwtUtils.generateToken(existingUser.getUserName());
-  //  System.out.println("Generated JWT Token: " + token); // For debugging
-    return ResponseEntity.ok(token);
-}
+    
+    
+    
+//    @PostMapping("/login")
+//	//@Operation(security = @SecurityRequirement(name = ""))
+//public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+//    User existingUser = null;
+//	try {
+//		existingUser = userRepository.findByUserName(request.getUsername())
+//		        .orElseThrow(() -> new CustomException("User not found","404"));
+//	} catch (CustomException e) {
+//		// TODO Auto-generated catch block
+//		e.printStackTrace();
+//	}
+//    if (!passwordEncoder.matches(request.getPassword(), existingUser.getPassword())) {
+//    	 throw new CustomException("Invalid credentials","401");
+//    }
+//    String token = jwtUtils.generateToken(existingUser.getUserName());
+//  //  System.out.println("Generated JWT Token: " + token); // For debugging
+//    return ResponseEntity.ok(token);
+//}
     // Helper method to fetch client IP address
    private String getClientIp(HttpServletRequest request) {
         String ipAddress = request.getHeader("X-Forwarded-For");

@@ -35,9 +35,15 @@ public class User {
 	    private String name;
 	 
 	 @NotBlank(message = "Contact number is required")
-	    @Pattern(regexp = "\\d+", message = "Contact number must be numeric")
+//	    @Pattern(regexp = "\\d+", message = "Contact number must be numeric")
 	    @Size(min = 10, max = 15, message = "Contact number must be between 10 and 15 digits")
-	    private String mobNumber;
+	    private String phoneNumber;
+	 
+	     private String otp;
+
+	    private LocalDateTime otpRequestedTime;
+
+	    private boolean isOtpVerified;
 	    
 	    @NotBlank(message="password  is required")
 	    @Size(min = 3, message = "Password must be at least 3 characters")
@@ -130,12 +136,39 @@ public class User {
 		public void setName(String name) {
 			this.name = name;
 		}
-		public String getMobNumber() {
-			return mobNumber;
+		
+		public String getPhoneNumber() {
+			return phoneNumber;
 		}
-		public void setMobNumber(String mobNumber) {
-			this.mobNumber = mobNumber;
+
+		public void setPhoneNumber(String phoneNumber) {
+			this.phoneNumber = phoneNumber;
 		}
+
+		public String getOtp() {
+			return otp;
+		}
+
+		public void setOtp(String otp) {
+			this.otp = otp;
+		}
+
+		public LocalDateTime getOtpRequestedTime() {
+			return otpRequestedTime;
+		}
+
+		public void setOtpRequestedTime(LocalDateTime otpRequestedTime) {
+			this.otpRequestedTime = otpRequestedTime;
+		}
+
+		public boolean isOtpVerified() {
+			return isOtpVerified;
+		}
+
+		public void setOtpVerified(boolean isOtpVerified) {
+			this.isOtpVerified = isOtpVerified;
+		}
+
 		public Long getId() {
 			return id;
 		}
