@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import motherson.crm.v3.customexception.CustomException;
 import motherson.crm.v3.customexception.Response;
+
 import motherson.crm.v3.models.Country;
 import motherson.crm.v3.services.CountryService;
 
@@ -29,7 +31,7 @@ import motherson.crm.v3.services.CountryService;
 public class CountryController {
 @Autowired
 private CountryService countryservice;
-  @PostMapping("/CREATE")
+  @PostMapping("/create")
 	public ResponseEntity<?> createcountrycon( @Valid @RequestBody Country country,BindingResult bindingResult)
 	{
 	  if (bindingResult.hasErrors()) {
@@ -60,7 +62,7 @@ private CountryService countryservice;
 		
 	}
   
-  @GetMapping("/GetAll")
+  @GetMapping("/getAll")
   
   public ResponseEntity<?> getAllContry()
   {
@@ -74,7 +76,7 @@ private CountryService countryservice;
 	}
 	  
   }
-  @GetMapping("/GetAll/{id}")
+  @GetMapping("/getAll/{id}")
   public ResponseEntity<?> getAllCountryBYId(@PathVariable Long id)
   {
 	  try {
@@ -102,12 +104,12 @@ private CountryService countryservice;
 	
 	  
   }
-  @DeleteMapping("/GetAll/{id}")
+  @DeleteMapping("/delete/{id}")
 public ResponseEntity<?> deleteDataFromId(@PathVariable Long id)
   {
 	  try {
 	       String count= countryservice.deleteCountryById(id);
-	return ResponseEntity.ok(new Response("sucess","datadeleted sucessfully","deleted"));
+	return ResponseEntity.ok(new Response<>("sucess","datadeleted sucessfully","deleted"));
 	  }catch(Exception e)
 	  {
 		  throw new CustomException("not found data this id","404");
