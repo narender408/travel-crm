@@ -1,12 +1,14 @@
 package motherson.crm.v3.models;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -66,7 +68,18 @@ public class State {
 	@JsonBackReference
     private Country country;
 	
+	@ElementCollection
+	private List<String> imageUrls;
 	
+
+	public List<String> getImageUrls() {
+		return imageUrls;
+	}
+
+	public void setImageUrls(List<String> imageUrls) {
+		this.imageUrls = imageUrls;
+	}
+
 	public String getIpaddress() {
 		return ipaddress;
 	}

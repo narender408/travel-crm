@@ -1,5 +1,6 @@
 package motherson.crm.v3.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,11 +12,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -33,56 +40,74 @@ public class StateController {
 	
 	@Autowired
 	private StateService stateservice;
+	@Autowired
+    private Cloudinary cloudinary;
 	
 	@PostMapping("/create")
-	public ResponseEntity<?> statesavcon(@Valid @RequestBody State state,BindingResult bindingresult,HttpServletRequest request)
-	{
-		
-		if (bindingresult.hasErrors()) {
-	          // Collect field error messages
-	          Map<String, String> errors = new HashMap<>();
-	          bindingresult.getFieldErrors().forEach(error -> {
-	              errors.put(error.getField(), error.getDefaultMessage());
-	          });
-	          return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
-	      
-		  }
-		
-		if(stateservice.existByStateName(state.getStatename()))
-		{
-			return ResponseEntity.ok(new Response<>("failed","statename already exist","failed"));	
-		}
-		
-		try {
-			 String clientIpAddress = getClientIp(request);
-			    state.setIpaddress(clientIpAddress);
-			       
-		State statesave=stateservice.createState(state);
-		return ResponseEntity.ok(new Response<>("sucess","state save sucessfully","created"));
-		
-		}catch (ResourceNotFoundException ex) {
-	        return new ResponseEntity<>(new ErrorResponse(
-	                HttpStatus.NOT_FOUND.value(),
-	                "Not Found",
-	                ex.getMessage()),HttpStatus.BAD_REQUEST);
-	                
+    public ResponseEntity<?> createState(
+            @Valid @ModelAttribute State state,
+            BindingResult result,
+            @RequestParam(value = "image", required = false) MultipartFile[] files,
+            HttpServletRequest request) {
 
-	    } catch (BadRequestException ex) {
-	        return new ResponseEntity<>(new ErrorResponse(
-	                HttpStatus.BAD_REQUEST.value(),
-	                "Bad Request",
-	                ex.getMessage()
-	                ), HttpStatus.BAD_REQUEST);
-		
-	    }catch(DataIntegrityViolationException ex)
-		{
-	    	return new ResponseEntity<>(new ErrorResponse(
-	    			HttpStatus.BAD_REQUEST.value(),
-	    			"insert the valid fk",
-	    			"insert valid fk bro"),HttpStatus.BAD_REQUEST);
-		}
-	}
-	
+        if (result.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            result.getFieldErrors().forEach(error ->
+                errors.put(error.getField(), error.getDefaultMessage())
+            );
+            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        }
+
+        if (stateservice.existByStateName(state.getStatename())) {
+            return ResponseEntity.ok(new Response<>("failed", "State name already exists", null));
+        }
+try {
+        String clientIpAddress = getClientIp(request);
+	    state.setIpaddress(clientIpAddress);
+
+        // Handle optional image upload
+        if (files != null && files.length > 0) {
+            List<String> imageUrls = new ArrayList<>();
+
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    try {
+                        String type = file.getContentType();
+                        if (!("image/png".equals(type) || "image/jpeg".equals(type))) {
+                             throw new ResourceNotFoundException("png and jpg image allow only"); 
+                        }
+
+                        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+                        System.out.println("Upload Result: " + uploadResult);
+
+                        String imageUrl = (String) uploadResult.get("secure_url");
+                        imageUrls.add(imageUrl);
+                    } catch (Exception ex) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Image upload failed: " + ex.getMessage());
+                    }
+                }
+            }
+
+            state.setImageUrls(imageUrls);
+        }
+
+        State savedState = stateservice.createState(state);
+        return ResponseEntity.ok(new Response<>("success", "State created successfully", savedState));
+    }catch (ResourceNotFoundException ex) {
+        return new ResponseEntity<>(new ErrorResponse(
+        HttpStatus.NOT_FOUND.value(),
+        "Not Found",
+        ex.getMessage()),HttpStatus.BAD_REQUEST);
+        
+
+} catch (BadRequestException ex) {
+return new ResponseEntity<>(new ErrorResponse(
+        HttpStatus.BAD_REQUEST.value(),
+        "Bad Request",
+        ex.getMessage()
+        ), HttpStatus.BAD_REQUEST); 
+}
+}
 	@GetMapping("/getAll")
 	public ResponseEntity<?> getAllStateCon()
 	{
